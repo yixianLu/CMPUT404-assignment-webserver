@@ -1,5 +1,6 @@
 #  coding: utf-8 
 import socketserver
+import os
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # 
@@ -26,15 +27,65 @@ import socketserver
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 
-
 class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
         self.data = self.data.decode().splitlines()
+        method_path = self.data[0].split()
+        method = method_path[0]
+        path = method_path[1]
+
+        half_path = os.path.abspath(os.getcwd()) + '/www'
+        temp = half_path+ os.path.abspath(path)
+        if method != "GET":
+            self.handle_method_exception()       
+        elif os.path.isdir(half_path+ os.path.abspath(path)):
+            total_path = half_path+path
+            if total_path[-1] != "/":
+                self.handle_move_exception(total_path+"/")
+            else:
+                self.handle_directory(total_path)
+        elif os.path.isfile(half_path+ os.path.abspath(path)):
+            total_path = half_path+path
+            self.handle_files(total_path)
+
+        else:
+            self.handle_not_found()
+    
+    def handle_files(self, path):
+        status = "200 OK"
+        header = "Content-Type: text/"
+        file_type = path.split('.')[-1]
+        header+= file_type
+        content = open(path,"r").read()
+        self.respond_request(status, header, content)
+    
+    def handle_directory(self, path):
+        status = "200 OK"
+        header= "Content-Type: text/html"
+        path += "index.html"
+        content = open(path,"r").read()
+        self.respond_request(status, header, content)
+    
+    def handle_not_found(self):
+        status = "404 NOT FOUND"
+        self.respond_request(status,"","")
         
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+    def handle_method_exception(self):
+        status = "405 METHOD NOT ALLOWED"
+        self.respond_request(status, '','')
+    
+    def handle_move_exception(self, correct_path):
+        status = "301 MOVED PERMANENTLY"
+        self.respond_request(status, correct_path,'')
+
+    def respond_request(self, status, header, content):
+        #print ("Got a request of: %s\n" % self.data)
+        response = "HTTP/1.1 {}\r\n{}\r\n".format(status, header)
+        response += content
+        self.request.sendall(bytearray(response,'utf-8'))
+
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
