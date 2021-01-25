@@ -93,6 +93,7 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
     server = socketserver.TCPServer((HOST, PORT), MyWebServer)
+    print(server.server_address)
 
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
