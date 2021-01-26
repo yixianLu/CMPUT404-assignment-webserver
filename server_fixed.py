@@ -37,21 +37,27 @@ class MyWebServer(socketserver.BaseRequestHandler):
         path = method_path[1]
 
         half_path = os.path.abspath(os.getcwd()) + '/www'
-        
-        temp = half_path+ os.path.abspath(path)
+        temp = half_path + path
+        print(temp)
         if method != "GET":
+            print("method not GET")
             self.handle_method_exception()       
-        elif os.path.isdir(half_path):
-            total_path = half_path+path
+        elif os.path.isdir(temp):
+            print("is a directory")
+            total_path = half_path + path
             if total_path[-1] != "/":
+                print("301 error")
                 self.handle_move_exception(total_path+"/")
             else:
+                print("correct directory")
                 self.handle_directory(total_path)
-        elif os.path.isfile(half_path+ os.path.abspath(path)):
+        elif os.path.isfile(temp):
+            print("correct file")
             total_path = half_path+path
             self.handle_files(total_path)
 
         else:
+            print("404 error")
             self.handle_not_found()
     
     def handle_files(self, path):
@@ -82,10 +88,10 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.respond_request(status, correct_path,'')
 
     def respond_request(self, status, header, content):
-        #print ("Got a request of: %s\n" % self.data)
+        # print("Got a request of: %s\n" % self.data)
         response = "HTTP/1.1 {}\r\n{}\r\n".format(status, header)
         response += content
-        self.request.sendall(bytearray(response,'utf-8'))
+        self.request.sendall(bytearray(response, 'utf-8'))
 
 
 if __name__ == "__main__":
@@ -94,7 +100,6 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
     server = socketserver.TCPServer((HOST, PORT), MyWebServer)
-    print(server.server_address)
 
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
