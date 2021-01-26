@@ -37,7 +37,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         path = method_path[1]
 
         half_path = os.path.abspath(os.getcwd()) + '/www'
-        temp = half_path + path
+        temp = half_path+os.path.abspath(path)
         print(temp)
         if method != "GET":
             print("method not GET")
