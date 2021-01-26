@@ -37,17 +37,19 @@ class MyWebServer(socketserver.BaseRequestHandler):
         path = method_path[1]
 
         half_path = os.path.abspath(os.getcwd()) + '/www'
-        
-        temp = half_path+ os.path.abspath(path)
+        temp = half_path+os.path.abspath(path)
+
         if method != "GET":
             self.handle_method_exception()       
-        elif os.path.isdir(half_path):
-            total_path = half_path+path
+        elif os.path.isdir(temp):
+            total_path = half_path + path
+            # print(temp)
+            # print(total_path)
             if total_path[-1] != "/":
                 self.handle_move_exception(total_path+"/")
             else:
                 self.handle_directory(total_path)
-        elif os.path.isfile(half_path+ os.path.abspath(path)):
+        elif os.path.isfile(temp):
             total_path = half_path+path
             self.handle_files(total_path)
 
@@ -58,34 +60,65 @@ class MyWebServer(socketserver.BaseRequestHandler):
         status = "200 OK"
         header = "Content-Type: text/"
         file_type = path.split('.')[-1]
-        header+= file_type
+        header+= file_type+"\r\n"
         content = open(path,"r").read()
         self.respond_request(status, header, content)
     
     def handle_directory(self, path):
         status = "200 OK"
-        header= "Content-Type: text/html"
+        header= "Content-Type: text/html\r\n"
         path += "index.html"
         content = open(path,"r").read()
         self.respond_request(status, header, content)
     
     def handle_not_found(self):
-        status = "404 NOT FOUND"
-        self.respond_request(status,"","")
+        status = "404 Not Found"
+        content = '''
+        <!DOCTYPE html>
+        <html lang="en">
+        <meta charset="UTF-8">
+        <h1>405 NOT FOUND</h1>
+        <body>
+
+        </body>
+        </html>
+        '''
+        self.respond_request(status,"",content)
         
     def handle_method_exception(self):
-        status = "405 METHOD NOT ALLOWED"
-        self.respond_request(status, '','')
+        status = "405 Method Not Allowed"
+        content = '''
+        <!DOCTYPE html>
+        <html lang="en">
+        <meta charset="UTF-8">
+        <h1>405 Method not allowed</h1>
+        <body>
+
+        </body>
+        </html>
+        '''
+        self.respond_request(status, '',content)
     
     def handle_move_exception(self, correct_path):
         status = "301 MOVED PERMANENTLY"
-        self.respond_request(status, correct_path,'')
+        header = " Location:  "+correct_path
+        content = '''
+        <!DOCTYPE html>
+        <html lang="en">
+        <meta charset="UTF-8">
+        <h1>301 MOVED PERMANENTLY</h1>
+        <body>
+
+        </body>
+        </html>
+        '''
+        self.respond_request(status, header,content)
 
     def respond_request(self, status, header, content):
-        #print ("Got a request of: %s\n" % self.data)
+        # print("Got a request of: %s\n" % self.data)
         response = "HTTP/1.1 {}\r\n{}\r\n".format(status, header)
         response += content
-        self.request.sendall(bytearray(response,'utf-8'))
+        self.request.sendall(bytearray(response, 'utf-8'))
 
 
 if __name__ == "__main__":
@@ -94,7 +127,6 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
     server = socketserver.TCPServer((HOST, PORT), MyWebServer)
-    print(server.server_address)
 
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
