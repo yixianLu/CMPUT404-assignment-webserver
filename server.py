@@ -31,30 +31,30 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        self.data = self.data.decode().splitlines()
-        method_path = self.data[0].split()
-        method = method_path[0]
-        path = method_path[1]
-
-        half_path = os.path.abspath(os.getcwd()) + '/www'
-        temp = half_path+os.path.abspath(path)
-
-        if method != "GET":
-            self.handle_method_exception()       
-        elif os.path.isdir(temp):
-            total_path = half_path + path
-            # print(temp)
-            # print(total_path)
-            if total_path[-1] != "/":
-                self.handle_move_exception(total_path+"/")
-            else:
-                self.handle_directory(total_path)
-        elif os.path.isfile(temp):
-            total_path = half_path+path
-            self.handle_files(total_path)
-
+        decode_message = self.data.decode("utf-8").split('\r\n')
+        methods = decode_message[0].split()
+        if methods[0] != "GET":
+            self.handle_method_exception()
         else:
-            self.handle_not_found()
+            #print(methods)
+            #print("after handling")
+            if methods[1].endswith("/"):
+                dir_part = methods[1]
+                total_url = os.path.join(os.getcwd(), "www") + dir_part
+                self.handle_directory(total_url)
+            else:
+                #print("file here!!!!")
+                file_part = os.path.normpath(methods[1])
+                #print(file_part)
+                total_url = os.path.join(os.getcwd(), "www") + file_part
+                if(os.path.isfile(total_url)):
+                    self.handle_files(total_url)
+                elif(os.path.isdir(total_url)):
+                    correct_path = total_url+ "/"
+                    self.handle_move_exception(correct_path)
+                else:
+                    self.handle_not_found()
+
     
     def handle_files(self, path):
         status = "200 OK"
