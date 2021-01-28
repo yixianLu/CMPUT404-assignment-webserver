@@ -36,89 +36,78 @@ class MyWebServer(socketserver.BaseRequestHandler):
         if methods[0] != "GET":
             self.handle_method_exception()
         else:
-            #print(methods)
-            #print("after handling")
+            #check whether it is a directory
             if methods[1].endswith("/"):
                 dir_part = methods[1]
+                # if len < 1, it means it is a root, no need to strip
+                if len(dir_part) > 1:
+                    #clean extra symbols in the path
+                    dir_part = os.path.normpath(dir_part)
+                    #because it is directory, so the last "/" is also cleaned, so need to
+                    # add it back
+                    dir_part+="/"
                 total_url = os.path.join(os.getcwd(), "www") + dir_part
-                self.handle_directory(total_url)
+                #check whether the directory exists
+                if os.path.isdir(total_url):
+                    #exist, handle the directory
+                    self.handle_directory(total_url)
+                else:
+                    #not exist, raise 404
+                    self.handle_not_found()
             else:
-                #print("file here!!!!")
+                #strip the extra symbol in path
                 file_part = os.path.normpath(methods[1])
-                #print(file_part)
                 total_url = os.path.join(os.getcwd(), "www") + file_part
+                #check whether the file exist
                 if(os.path.isfile(total_url)):
                     self.handle_files(total_url)
+                # if not exist, check whether it is actually an directory whithout last "/"
                 elif(os.path.isdir(total_url)):
+                    # if yes raise 301 error and find the correct path
                     correct_path = total_url+ "/"
                     self.handle_move_exception(correct_path)
                 else:
+                    #if not raise 404 error
                     self.handle_not_found()
 
     
     def handle_files(self, path):
-        status = "200 OK"
-        header = "Content-Type: text/"
+        header = "HTTP/1.1 200 OK\r\n"
+        header += "Content-Type: text/"
         file_type = path.split('.')[-1]
         header+= file_type+"\r\n"
         content = open(path,"r").read()
-        self.respond_request(status, header, content)
+        header += "Content-length: "+ str(len(content))+ "\r\n"
+        header+= "\r\n"+ content
+        self.request.sendall(bytearray(header, 'utf-8'))
     
     def handle_directory(self, path):
-        status = "200 OK"
-        header= "Content-Type: text/html\r\n"
+        header = "HTTP/1.1 200 OK\r\n"
+        header += "Content-Type: text/html\r\n"
         path += "index.html"
         content = open(path,"r").read()
-        self.respond_request(status, header, content)
+        header += "Content-length: "+ str(len(content))+ "\r\n"
+        header+= "\r\n"+ content
+        self.request.sendall(bytearray(header, 'utf-8'))
     
     def handle_not_found(self):
-        status = "404 Not Found"
-        content = '''
-        <!DOCTYPE html>
-        <html lang="en">
-        <meta charset="UTF-8">
-        <h1>405 NOT FOUND</h1>
-        <body>
-
-        </body>
-        </html>
-        '''
-        self.respond_request(status,"",content)
+        header = "HTTP/1.1 404 Not Found\r\n"
+        header += "Content-Type: text/html\r\n"
+        header += "<h1>404 Not found</h1>"
+        self.request.sendall(bytearray(header, 'utf-8'))
         
     def handle_method_exception(self):
-        status = "405 Method Not Allowed"
-        content = '''
-        <!DOCTYPE html>
-        <html lang="en">
-        <meta charset="UTF-8">
-        <h1>405 Method not allowed</h1>
-        <body>
-
-        </body>
-        </html>
-        '''
-        self.respond_request(status, '',content)
+        header = "HTTP/1.1 405 Method Not Allowed\r\n"
+        header += "Content-Type: text/html\r\n"
+        header += "Allow: GET\r\n\r\n"+ "<h1>405 Only GET Allowed!</h1>"
+        self.request.sendall(bytearray(header, 'utf-8'))
     
     def handle_move_exception(self, correct_path):
-        status = "301 MOVED PERMANENTLY"
-        header = " Location:  "+correct_path
-        content = '''
-        <!DOCTYPE html>
-        <html lang="en">
-        <meta charset="UTF-8">
-        <h1>301 MOVED PERMANENTLY</h1>
-        <body>
+        header = "HTTP/1.1 301 Moved Permanently\r\n"
+        header += "Server: local host/8080\r\n"
+        header += " Location:  "+correct_path+"\r\n"
+        self.request.sendall(bytearray(header, 'utf-8'))
 
-        </body>
-        </html>
-        '''
-        self.respond_request(status, header,content)
-
-    def respond_request(self, status, header, content):
-        # print("Got a request of: %s\n" % self.data)
-        response = "HTTP/1.1 {}\r\n{}\r\n".format(status, header)
-        response += content
-        self.request.sendall(bytearray(response, 'utf-8'))
 
 
 if __name__ == "__main__":
