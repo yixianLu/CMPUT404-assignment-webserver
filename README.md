@@ -24,6 +24,7 @@ examples thus some of the code is Copyright © 2001-2013 Python
 Software Foundation; All Rights Reserved under the PSF license (GPL
 compatible) http://docs.python.org/2/library/socketserver.html
 
+#Reference in Assignment 
 Consult with LidaLing about the algorithm of os path<br>
 The response format is from refernced from https://evertpot.com/http/
 
